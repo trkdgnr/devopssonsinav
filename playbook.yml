@@ -1,0 +1,54 @@
+---
+- hosts: all
+  become: true
+  
+  tasks:
+
+    - name: Run docker-compose
+      docker_compose:
+        project_src: /root/sinav/
+        files:
+          - docker-compose.yaml
+        state: present
+   
+    - name: Add elastic.co key
+      apt_key: 
+        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        state: present
+
+    - name: Install apt-transport-https
+      apt: name=apt-transport-https state=latest update_cache=yes
+
+    - name: Add elastic.co repository
+      apt_repository: repo="deb https://artifacts.elastic.co/packages/7.x/apt stable main" filename="elastic-7.x" update_cache=yes
+
+    - name: Install Filebeat
+      apt: name=filebeat state=latest update_cache=yes
+
+    - name: Copy base metricbeat config file
+      copy: src=/root/tarik-doganer/filebeat.yml dest=/etc/filebeat/filebeat.yml
+
+    - name: Setup Filebeat
+      command: filebeat setup -e
+
+    - name: Enable & Start Filebeat
+      service:
+        name: filebeat
+        enabled: yes
+        state: started
+    
+    - name: Install Metricbeat
+      apt: name=metricbeat state=latest update_cache=yes
+
+    - name: Copy base metricbeat config file
+      copy: src=/root/tarik-doganer/metricbeat.yml dest=/etc/metricbeat/metricbeat.yml
+
+    - name: Setup Metricbeat
+      command: metricbeat setup -e
+
+    - name: Enable & Start Metricbeat
+      service:
+        name: metricbeat
+        enabled: yes
+        state: started
+
